@@ -1,7 +1,7 @@
-import requests
 import time
 import json
 import os
+import random
 
 SERVER_URL = "http://localhost:5000"
 
@@ -53,10 +53,18 @@ def test_adaptation():
             # gracefully handle custom strings
             phenomenon = user_input.replace(' ', '_').lower()
             
+        # Generate Dynamic Situational State
+        distance = random.choice(["Close", "Mid", "Far"])
+        user_action = random.choice(["Idle", "Attacking", "Moving"])
+        hp_status = "LowHP" if ai_hp < 30 else "HighHP"
+        current_state = f"{distance}_{hp_status}_{user_action}"
+
         # 1. Ask for an action
         act_payload = {
-            "state": str(current_state),
-            "phenomenon_id": phenomenon
+            "state": current_state,
+            "phenomenon_id": phenomenon,
+            "distance": distance,
+            "user_action": user_action
         }
         
         print(f"\n[Player uses {phenomenon}]")
@@ -85,11 +93,13 @@ def test_adaptation():
             
         # 2. Simulate taking damage and updating Q-table
         update_payload = {
-            "state": str(current_state),
+            "state": current_state,
             "action": action,
-            "next_state": str(current_state),
+            "next_state": current_state,
             "phenomenon_id": phenomenon,
             "previous_phenomenon_id": previous_phenomenon,
+            "distance": distance,
+            "user_action": user_action,
             "damage_taken": damage,
             "damage_to_player": damage_to_player,
             "is_player_dead": (user_hp - damage_to_player <= 0),

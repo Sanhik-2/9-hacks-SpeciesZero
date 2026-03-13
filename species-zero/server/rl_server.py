@@ -4,8 +4,8 @@ from validate_telemetry import validate_act_state, validate_update_state
 from reward import calculate_reward
 
 app = Flask(__name__)
-# Actions: 0: Idle, 1: Chase, 2: Dodge, 3: Attack
-agent = QAILogic(action_size=4, model_path="q_table.npz")
+# Actions: 0: Idle, 1: Chase, 2: Dodge, 3: Attack, 4: Adapt Current, 5: Adapt Previous
+agent = QAILogic(action_size=6, model_path="q_table.npz")
 
 @app.route("/act", methods=["POST"])
 def act():
@@ -41,8 +41,17 @@ def update():
     # Process incoming damage reductions
     effective_damage = agent.process_damage(phenomenon_id, damage_taken)
     
+    # Observation Learning
+    spin_from_observation = False
+    if action == 2:
+        spin_from_observation = agent.observe_phenomenon(phenomenon_id, increment=0.5)
+    elif damage_taken > 0:
+        spin_from_observation = agent.observe_phenomenon(phenomenon_id, increment=1.0)
+    
     # Check if the AI actively chose to adapt this turn
     wheel_spin = agent.process_adaptation(action, phenomenon_id, previous_phenomenon_id)
+    
+    wheel_spin = wheel_spin or spin_from_observation
     
     # Adaptive Counter flag check (for client visuals/logs if needed)
     is_infused_counter = (action == 3 and agent.is_adapted(phenomenon_id))

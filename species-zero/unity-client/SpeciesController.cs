@@ -15,17 +15,19 @@ public class SpeciesController : MonoBehaviour
     public MahoragaWheel wheel;
     
     // Call this method when you want the AI to act
-    public void RequestAction(string phenomenonId)
+    public void RequestAction(string phenomenonId, string distance="Close", string userAction="Idle")
     {
-        StartCoroutine(ActCoroutine(phenomenonId));
+        StartCoroutine(ActCoroutine(phenomenonId, distance, userAction));
     }
     
-    private IEnumerator ActCoroutine(string phenomenonId)
+    private IEnumerator ActCoroutine(string phenomenonId, string distance, string userAction)
     {
         SpeciesState payload = new SpeciesState
         {
             state = currentState,
             phenomenon_id = phenomenonId,
+            distance = distance,
+            user_action = userAction,
             damage_taken = 0f,
             damage_to_player = 0f
         };
@@ -81,12 +83,12 @@ public class SpeciesController : MonoBehaviour
     }
     
     // Call this when the agent takes damage and optionally deals damage
-    public void RecordDamageAndUpdate(string phenomenonId, float damageTaken, float damageToPlayer, float aiHp, float userHp, bool isPlayerDead, string nextState)
+    public void RecordDamageAndUpdate(string phenomenonId, string previousPhenomenonId, float damageTaken, float damageToPlayer, float aiHp, float userHp, bool isPlayerDead, string distance, string userAction, string nextState)
     {
-        StartCoroutine(UpdateCoroutine(phenomenonId, damageTaken, damageToPlayer, aiHp, userHp, isPlayerDead, nextState));
+        StartCoroutine(UpdateCoroutine(phenomenonId, previousPhenomenonId, damageTaken, damageToPlayer, aiHp, userHp, isPlayerDead, distance, userAction, nextState));
     }
     
-    private IEnumerator UpdateCoroutine(string phenomenonId, float damageTaken, float damageToPlayer, float aiHp, float userHp, bool isPlayerDead, string nextState)
+    private IEnumerator UpdateCoroutine(string phenomenonId, string previousPhenomenonId, float damageTaken, float damageToPlayer, float aiHp, float userHp, bool isPlayerDead, string distance, string userAction, string nextState)
     {
         SpeciesState payload = new SpeciesState
         {
@@ -94,6 +96,9 @@ public class SpeciesController : MonoBehaviour
             action = currentAction,
             next_state = nextState,
             phenomenon_id = phenomenonId,
+            previous_phenomenon_id = previousPhenomenonId,
+            distance = distance,
+            user_action = userAction,
             damage_taken = damageTaken,
             damage_to_player = damageToPlayer,
             ai_hp = aiHp,
@@ -123,6 +128,12 @@ public class SpeciesController : MonoBehaviour
                     {
                         wheel.TriggerSpin();
                     }
+                }
+                
+                if (response.is_infused_counter)
+                {
+                    Debug.Log("🔥 INFUSED COUNTER TRIGGERED! 2x Damage output applied to player!");
+                    // Player damage logic hooks go here
                 }
                 
                 currentState = nextState;

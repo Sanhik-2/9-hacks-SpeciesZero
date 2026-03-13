@@ -13,8 +13,8 @@ class QAILogic:
         self.adapted_phenomena = adapted  # set of strings
         self.adaptation_registry = registry  # dict: phenomenon_id -> hit count
             
-        self.learning_rate = 0.05
-        self.discount_factor = 0.95
+        self.learning_rate = 0.1
+        self.discount_factor = 0.9
         self.epsilon = 0.1
         
     def _get_q_values(self, state):
@@ -58,6 +58,27 @@ class QAILogic:
     def is_adapted(self, phenomenon_id):
         """Returns True if the exact phenomenon is completely adapted."""
         return phenomenon_id in self.adapted_phenomena
+
+    def observe_phenomenon(self, phenomenon_id, increment=1.0):
+        """
+        Increments adaptation registry passively via Observation Learning.
+        Returns True if wheel spin occurs.
+        """
+        if phenomenon_id == "unknown" or phenomenon_id in self.adapted_phenomena:
+            return False
+            
+        if phenomenon_id not in self.adaptation_registry:
+            self.adaptation_registry[phenomenon_id] = 0.0
+            
+        self.adaptation_registry[phenomenon_id] += increment
+        
+        if self.adaptation_registry[phenomenon_id] >= 5.0:
+            self.adapted_phenomena.add(phenomenon_id)
+            save_state(self.q_table, self.adapted_phenomena, self.adaptation_registry, self.model_path)
+            return True
+            
+        save_state(self.q_table, self.adapted_phenomena, self.adaptation_registry, self.model_path)
+        return False
 
     def process_adaptation(self, action, current_phenomenon, previous_phenomenon):
         """

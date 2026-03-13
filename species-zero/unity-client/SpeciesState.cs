@@ -6,6 +6,8 @@ public class SpeciesState
     public string state;
     public string phenomenon_id;
     public string previous_phenomenon_id;
+    public string distance;
+    public string user_action;
     public float damage_taken;
     public float damage_to_player;
     public float ai_hp;
@@ -29,6 +31,7 @@ public class UpdateResponse
     public float reward_applied;
     public float effective_damage;
     public bool wheel_spin;
+    public bool is_infused_counter;
     public string[] adapted;
     public string error;
 }
