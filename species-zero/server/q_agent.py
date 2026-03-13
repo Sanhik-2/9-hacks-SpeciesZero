@@ -3,15 +3,16 @@ import difflib
 from persistence import save_state, load_state
 
 class QAILogic:
-    def __init__(self, action_size=6, model_path="q_table.npz"):
+    def __init__(self, action_size=7, model_path="q_table.npz"):
         self.action_size = action_size
         self.model_path = model_path
         
         # Load state
-        q_table, adapted, registry = load_state(self.model_path)
+        q_table, adapted, registry, wins = load_state(self.model_path)
         self.q_table = q_table  # dict: str(state) -> list of state-action values
         self.adapted_phenomena = adapted  # set of strings
         self.adaptation_registry = registry  # dict: phenomenon_id -> hit count
+        self.consecutive_wins = wins
             
         self.learning_rate = 0.1
         self.discount_factor = 0.9
@@ -45,7 +46,7 @@ class QAILogic:
         self.q_table[state_key][action] += self.learning_rate * td_error
         
         # Persistence
-        save_state(self.q_table, self.adapted_phenomena, self.adaptation_registry, self.model_path)
+        save_state(self.q_table, self.adapted_phenomena, self.adaptation_registry, self.consecutive_wins, self.model_path)
 
     def check_semantic_similarity(self, phenomenon_id):
         """Returns True if there is a similar phenomenon already adapted to (>60% match)."""
@@ -74,21 +75,21 @@ class QAILogic:
         
         if self.adaptation_registry[phenomenon_id] >= 5.0:
             self.adapted_phenomena.add(phenomenon_id)
-            save_state(self.q_table, self.adapted_phenomena, self.adaptation_registry, self.model_path)
+            save_state(self.q_table, self.adapted_phenomena, self.adaptation_registry, self.consecutive_wins, self.model_path)
             return True
             
-        save_state(self.q_table, self.adapted_phenomena, self.adaptation_registry, self.model_path)
+        save_state(self.q_table, self.adapted_phenomena, self.adaptation_registry, self.consecutive_wins, self.model_path)
         return False
 
     def process_adaptation(self, action, current_phenomenon, previous_phenomenon):
         """
-        Increments adaptation counters if the AI actively chose to adapt (Action 4 or 5).
+        Increments adaptation counters if the AI actively chose to adapt (Action 5 or 6).
         Returns True if a 'Wheel Spin' (full immunity threshold) is reached.
         """
         target_phenomenon = None
-        if action == 4 and current_phenomenon:
+        if action == 5 and current_phenomenon:
             target_phenomenon = current_phenomenon
-        elif action == 5 and previous_phenomenon:
+        elif action == 6 and previous_phenomenon:
             target_phenomenon = previous_phenomenon
             
         if not target_phenomenon or target_phenomenon in self.adapted_phenomena:
@@ -102,10 +103,10 @@ class QAILogic:
         # Hit limit logic (5 hits to fully adapt)
         if self.adaptation_registry[target_phenomenon] >= 5:
             self.adapted_phenomena.add(target_phenomenon)
-            save_state(self.q_table, self.adapted_phenomena, self.adaptation_registry, self.model_path)
+            save_state(self.q_table, self.adapted_phenomena, self.adaptation_registry, self.consecutive_wins, self.model_path)
             return True
             
-        save_state(self.q_table, self.adapted_phenomena, self.adaptation_registry, self.model_path)
+        save_state(self.q_table, self.adapted_phenomena, self.adaptation_registry, self.consecutive_wins, self.model_path)
         return False
 
     def process_damage(self, phenomenon_id, base_damage):

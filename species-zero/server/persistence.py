@@ -2,12 +2,13 @@ import numpy as np
 import os
 import json
 
-def save_state(q_table_dict, adapted_phenomena, adaptation_registry, filepath):
+def save_state(q_table_dict, adapted_phenomena, adaptation_registry, consecutive_wins, filepath):
     """Saves Q-table and adaptation data to an .npz file."""
     np.savez(filepath, 
              q_table=json.dumps(q_table_dict), 
              adapted_phenomena=json.dumps(list(adapted_phenomena)),
-             adaptation_registry=json.dumps(adaptation_registry))
+             adaptation_registry=json.dumps(adaptation_registry),
+             consecutive_wins=consecutive_wins)
 
 def load_state(filepath):
     """Loads Q-table and adaptation data, returning empty defaults if none exist."""
@@ -19,11 +20,15 @@ def load_state(filepath):
             adapted_str = str(data['adapted_phenomena'].item()) if data['adapted_phenomena'].shape == () else str(data['adapted_phenomena'])
             registry_str = str(data['adaptation_registry'].item()) if data['adaptation_registry'].shape == () else str(data['adaptation_registry'])
             
+            consecutive_wins = 0
+            if 'consecutive_wins' in data:
+                consecutive_wins = int(data['consecutive_wins'].item() if data['consecutive_wins'].shape == () else data['consecutive_wins'])
+            
             q_table_dict = json.loads(q_table_str)
             adapted_phenomena = set(json.loads(adapted_str))
             adaptation_registry = json.loads(registry_str)
-            return q_table_dict, adapted_phenomena, adaptation_registry
+            return q_table_dict, adapted_phenomena, adaptation_registry, consecutive_wins
         except Exception as e:
             print(f"Warning: Failed to load state from {filepath}: {e}")
             pass
-    return {}, set(), {}
+    return {}, set(), {}, 0

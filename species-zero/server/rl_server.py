@@ -4,8 +4,8 @@ from validate_telemetry import validate_act_state, validate_update_state
 from reward import calculate_reward
 
 app = Flask(__name__)
-# Actions: 0: Idle, 1: Chase, 2: Dodge, 3: Attack, 4: Adapt Current, 5: Adapt Previous
-agent = QAILogic(action_size=6, model_path="q_table.npz")
+# Actions: 0: Idle, 1: Advance, 2: Dodge, 3: Melee, 4: Ranged, 5: Adapt Current, 6: Adapt Previous
+agent = QAILogic(action_size=7, model_path="q_table.npz")
 
 @app.route("/act", methods=["POST"])
 def act():
@@ -35,6 +35,7 @@ def update():
     damage_to_player = float(data.get("damage_to_player", 0.0))
     user_hp = float(data.get("user_hp", 100.0))
     ai_hp = float(data.get("ai_hp", 100.0))
+    distance = float(data.get("distance", 10.0))
     is_player_dead = bool(data.get("is_player_dead", False))
     turn = int(data.get("turn", 1))
     
@@ -53,11 +54,20 @@ def update():
     
     wheel_spin = wheel_spin or spin_from_observation
     
+    # Lethality & Reciprocity Tracking
+    if is_player_dead:
+        agent.consecutive_wins += 1
+    if (ai_hp - effective_damage) <= 0:
+        agent.consecutive_wins = 0
+        
+    infused_multiplier = 1.2 if agent.consecutive_wins >= 3 else 1.0
+    
     # Adaptive Counter flag check (for client visuals/logs if needed)
     is_infused_counter = (action == 3 and agent.is_adapted(phenomenon_id))
     
     # Calculate aggressive hunter reward
-    reward = calculate_reward(damage_to_player, effective_damage, turn, action, ai_hp, user_hp, is_player_dead)
+    is_adapted_to_ranged = phenomenon_id in ["ranged_fireball", "arrow_shot"] and agent.is_adapted(phenomenon_id)
+    reward = calculate_reward(damage_to_player, effective_damage, turn, action, ai_hp, user_hp, distance, is_adapted_to_ranged, is_player_dead)
     
     # Q-Learning update
     agent.update(state, action, reward, next_state)
@@ -68,6 +78,7 @@ def update():
         "effective_damage": float(effective_damage),
         "wheel_spin": wheel_spin,
         "is_infused_counter": is_infused_counter,
+        "infused_multiplier": infused_multiplier,
         "adapted": list(agent.adapted_phenomena)
     })
 
