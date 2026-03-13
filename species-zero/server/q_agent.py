@@ -13,6 +13,7 @@ class QAILogic:
         self.adapted_phenomena = adapted  # set of strings
         self.adaptation_registry = registry  # dict: phenomenon_id -> hit count
         self.consecutive_wins = wins
+        self.phenomenon_stats = {} # Track player phenomena counts for Mirror Engine
             
         self.learning_rate = 0.1
         self.discount_factor = 0.9
@@ -30,7 +31,14 @@ class QAILogic:
         if random.uniform(0, 1) < self.epsilon:
             return random.randint(0, self.action_size - 1)
             
-        q_values = self._get_q_values(state)
+        q_values = self._get_q_values(state)[:] # Copy to avoid mutating Q-table
+        
+        # Aggression Scaling (The "Finish Him" Logic)
+        if "_Critical_" in str(state):
+            # Weights Action 3 (Melee) and Action 7 (Blitz) by 3.0x
+            q_values[3] *= 3.0
+            q_values[7] *= 3.0
+            
         # return action with highest Q-value
         return q_values.index(max(q_values))
         
@@ -65,7 +73,14 @@ class QAILogic:
         Increments adaptation registry passively via Observation Learning.
         Returns True if wheel spin occurs.
         """
-        if phenomenon_id == "unknown" or phenomenon_id in self.adapted_phenomena:
+        if phenomenon_id == "unknown":
+            return False
+            
+        # Track stats for Mirror Engine
+        if phenomenon_id != "none":
+            self.phenomenon_stats[phenomenon_id] = self.phenomenon_stats.get(phenomenon_id, 0) + 1
+
+        if phenomenon_id in self.adapted_phenomena:
             return False
             
         if phenomenon_id not in self.adaptation_registry:
@@ -80,6 +95,12 @@ class QAILogic:
             
         save_state(self.q_table, self.adapted_phenomena, self.adaptation_registry, self.consecutive_wins, self.model_path)
         return False
+
+    def get_mirror_target(self):
+        """Returns the most used phenomenon_id for Action 6 Mimicry."""
+        if not self.phenomenon_stats:
+            return None
+        return max(self.phenomenon_stats, key=self.phenomenon_stats.get)
 
     def process_adaptation(self, action, current_phenomenon, previous_phenomenon):
         """

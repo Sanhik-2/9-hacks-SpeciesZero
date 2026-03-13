@@ -62,12 +62,15 @@ def update():
         
     infused_multiplier = 1.2 if agent.consecutive_wins >= 3 else 1.0
     
+    # Mirror Engine Mockery
+    mockery_flag = (action == 6 and agent.get_mirror_target() is not None)
+    
     # Adaptive Counter flag check (for client visuals/logs if needed)
     is_infused_counter = (action == 3 and agent.is_adapted(phenomenon_id))
     
     # Calculate aggressive hunter reward
-    is_adapted_to_ranged = phenomenon_id in ["ranged_fireball", "arrow_shot"] and agent.is_adapted(phenomenon_id)
-    reward = calculate_reward(damage_to_player, effective_damage, turn, action, ai_hp, user_hp, distance, is_adapted_to_ranged, is_player_dead)
+    is_adapted_to_current = agent.is_adapted(phenomenon_id)
+    reward = calculate_reward(damage_to_player, effective_damage, turn, action, ai_hp, user_hp, distance, is_adapted_to_current, is_player_dead)
     
     # Q-Learning update
     agent.update(state, action, reward, next_state)
@@ -79,6 +82,8 @@ def update():
         "wheel_spin": wheel_spin,
         "is_infused_counter": is_infused_counter,
         "infused_multiplier": infused_multiplier,
+        "mockery_flag": mockery_flag,
+        "mockery_target": agent.get_mirror_target(),
         "adapted": list(agent.adapted_phenomena)
     })
 

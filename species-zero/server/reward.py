@@ -1,4 +1,4 @@
-def calculate_reward(damage_to_player, effective_damage_taken, turn, action, ai_hp, user_hp, distance, is_adapted_to_ranged=False, is_player_dead=False):
+def calculate_reward(damage_to_player, effective_damage_taken, turn, action, ai_hp, user_hp, distance, is_adapted_to_current=False, is_player_dead=False):
     """
     Calculate the reward scaled between -1.0 and +1.0 to transition the AI into a Tactical Hunter.
     """
@@ -19,7 +19,7 @@ def calculate_reward(damage_to_player, effective_damage_taken, turn, action, ai_
         reward += 0.1
 
     # Dodge-to-Advance: Reward for moving closer when adapted to ranged projectile
-    if action == 1 and is_adapted_to_ranged:
+    if action == 1 and is_adapted_to_current:
         reward += 0.1
         
     # Vampire Reward
@@ -32,6 +32,10 @@ def calculate_reward(damage_to_player, effective_damage_taken, turn, action, ai_
             reward -= 1.0  # Double penalty for Close range miss
         else:
             reward -= 0.5
+            
+    # Relentless: Stagnation Penalty for Idling while immune
+    if action == 0 and is_adapted_to_current: # Simplified check for 'adapted to current'
+        reward -= 2.0
         
     # Vulnerability Penalty: -0.8 per 10 damage taken (Overpowers standard attack joy)
     if effective_damage_taken > 0:

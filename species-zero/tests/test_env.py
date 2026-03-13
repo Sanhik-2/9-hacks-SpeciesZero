@@ -148,10 +148,10 @@ def test_adaptation():
             print(f"AI fires a RANGED projectile!")
         elif action == 5: # Adapt Current
             print("AI focuses on actively adapting to the CURRENT attack!")
-        elif action == 6: # Adapt Previous
-            print("AI focuses on actively adapting to the PREVIOUS attack!")
+        elif action == 6: # Mirror Engine (Mimicry)
+            print("AI focuses on Mirroring your phenomenon!")
         elif action == 7: # Blitz Assault
-            dist_change = 2.0 * movement_mult
+            dist_change = 2.5 * movement_mult
             current_distance = max(0.0, current_distance - dist_change)
             print(f"\033[1;31m[!!!] PREDATOR IS BLITZING!\033[0m")
             print(f"[AI] >>>>> [USER] (Closed distance by {dist_change:.2f})")
@@ -161,7 +161,7 @@ def test_adaptation():
             if current_distance <= 1.5:
                 damage_to_player = 25.0
                 stunned = True # Apply Stun
-                print("AI lands a devastating BLITZ Strike! User is STUNNED!")
+                print("AI lands a devastating LUNGING BLITZ Strike! User is STUNNED!")
             else:
                 print(f"AI whiffs a BLITZ strike at {current_distance:.1f} distance!")
         elif action == 8: # Evasive Skirmish
@@ -209,6 +209,14 @@ def test_adaptation():
             if infused:
                 print(f"🔥 AI COUNTERED WITH INFUSED STRIKE! (Damage x{multiplier:.1f})")
                 damage_to_player *= multiplier
+                
+            if result.get("mockery_flag"):
+                target = result.get("mockery_target", "magic")
+                print(f"\033[1;33m[!] SPECIES ZERO IS MOCKING YOUR {target.upper()}!\033[0m")
+                # Action 6 deals 1.5x of the mirrored spell damage? User said 1.5x damage multiplier.
+                # Assuming base spell damage is 10.0 (from 1, 2) or whatever last was.
+                # Actually, Mirror Engine is Mirror of the phenomenon most used.
+                damage_to_player = 15.0 # 10.0 * 1.5
             
             if 'effective_damage' in result:
                 ai_hp -= result['effective_damage']
