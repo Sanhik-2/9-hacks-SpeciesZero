@@ -21,6 +21,8 @@ def test_adaptation():
     previous_phenomenon = None
     stunned = False
     sprint_count = 0
+    consecutive_retreats = 0 # Anti-Kiting tracking
+    suppressed_phenomena = {} # phenomenon_id -> turns left
     
     # Clear npz file to reset agent for testing
     q_table_path = os.path.join(os.path.dirname(__file__), "../server/q_table.npz")
@@ -32,9 +34,27 @@ def test_adaptation():
     while user_hp > 0 and ai_hp > 0:
         penalty = (1.15 ** turn) / 100.0
         print(f"\n--- Turn {turn} (Pressure Level: {penalty:.3f}) ---")
-        print(f"Player HP: {user_hp} | AI HP: {ai_hp}")
-        print(render_map(current_distance))
         
+        # UI Overhaul: Flash AI HP in Red if in Phase 2
+        ai_hp_display = f"{ai_hp:.1f}"
+        if ai_hp <= 30:
+            ai_hp_display = f"\033[1;31m{ai_hp:.1f} [PHASE 2: RESURRECTION]\033[0m"
+            
+        print(f"Player HP: {user_hp:.1f} | AI HP: {ai_hp_display}")
+        
+        # UI Overhaul: Distance symbols
+        map_str = render_map(current_distance)
+        if current_distance <= 2.0:
+            map_str = map_str.replace(" . ", " 🔥💀🔥 ")
+        print(map_str)
+        
+        # Decrement suppression timers
+        for phenom in list(suppressed_phenomena.keys()):
+            suppressed_phenomena[phenom] -= 1
+            if suppressed_phenomena[phenom] <= 0:
+                del suppressed_phenomena[phenom]
+                print(f"[*] Identity Suppression cleared for {phenom.upper()}.")
+
         print("\nChoose an action (or type 'quit' to exit):")
         print("1. fire_spell (Ranged)")
         print("2. ice_spell (Ranged)")
@@ -64,10 +84,13 @@ def test_adaptation():
                 user_action = "Moving"
                 if user_input.upper() == 'F':
                     current_distance = max(0.0, current_distance - 1.5)
+                    consecutive_retreats = 0
                 elif user_input.upper() == 'B':
                     current_distance += 1.5
+                    consecutive_retreats += 1
         elif user_input.upper() == 'S':
             user_action = "Idle"
+            consecutive_retreats = 0
         elif user_input == '1':
             phenomenon = "fire_spell"
             damage = 10.0
@@ -81,6 +104,11 @@ def test_adaptation():
             # gracefully handle custom strings
             phenomenon = user_input.replace(' ', '_').lower()
             damage = 10.0
+            
+        # Identity Suppression Check
+        if phenomenon in suppressed_phenomena:
+            print(f"\033[1;35m[!] YOUR POWER IS FADING. Damage with {phenomenon.upper()} reduced by 50%.\033[0m")
+            damage *= 0.5
             
         # Clear stun condition after movement attempt
         stunned = False
@@ -122,6 +150,11 @@ def test_adaptation():
         exhausted = sprint_count >= 2
         movement_mult = 0.5 if exhausted else 1.0
         
+        # Anti-Kiting: Triple Advance if User moves Backward twice
+        if consecutive_retreats >= 2:
+            movement_mult *= 3.0
+            print("\033[1;34m[!] PREY IS RETREATING. PREDATOR IS CLOSING THE GAP FAST!\033[0m")
+        
         if action in [7, 8]:
             sprint_count += 1
         else:
@@ -150,20 +183,16 @@ def test_adaptation():
             print("AI focuses on actively adapting to the CURRENT attack!")
         elif action == 6: # Mirror Engine (Mimicry)
             print("AI focuses on Mirroring your phenomenon!")
-        elif action == 7: # Blitz Assault
-            dist_change = 2.5 * movement_mult
-            current_distance = max(0.0, current_distance - dist_change)
-            print(f"\033[1;31m[!!!] PREDATOR IS BLITZING!\033[0m")
-            print(f"[AI] >>>>> [USER] (Closed distance by {dist_change:.2f})")
-            if exhausted:
-                print("AI is Exhausted! Movement halved.")
-
-            if current_distance <= 1.5:
+        elif action == 7: # Shadow Lunge (Redefinition)
+            if current_distance <= 6.0:
+                print(f"\033[1;31m[!!!] SHADOW LUNGE: PREDATOR TELEPORTED TO YOU!\033[0m")
+                current_distance = 0.0
                 damage_to_player = 25.0
-                stunned = True # Apply Stun
-                print("AI lands a devastating LUNGING BLITZ Strike! User is STUNNED!")
+                stunned = True
+                print("AI lands a devastating SHADOW LUNGE Strike! User is STUNNED!")
             else:
-                print(f"AI whiffs a BLITZ strike at {current_distance:.1f} distance!")
+                print(f"AI attempted a SHADOW LUNGE but you were too far ({current_distance:.1f} units)!")
+                # Optional: still advance a bit if too far? User didn't specify, I'll stick to strict logic.
         elif action == 8: # Evasive Skirmish
             if current_distance > 3.0:
                 print("AI performs an Evasive Skirmish!")
@@ -213,10 +242,13 @@ def test_adaptation():
             if result.get("mockery_flag"):
                 target = result.get("mockery_target", "magic")
                 print(f"\033[1;33m[!] SPECIES ZERO IS MOCKING YOUR {target.upper()}!\033[0m")
+                print("\033[1;35m[!] YOUR POWER IS FADING. SPECIES ZERO HAS CONSUMED YOUR ESSENCE.\033[0m")
                 # Action 6 deals 1.5x of the mirrored spell damage? User said 1.5x damage multiplier.
                 # Assuming base spell damage is 10.0 (from 1, 2) or whatever last was.
                 # Actually, Mirror Engine is Mirror of the phenomenon most used.
                 damage_to_player = 15.0 # 10.0 * 1.5
+                # Apply Identity Suppression for 3 turns
+                suppressed_phenomena[target] = 3
             
             if 'effective_damage' in result:
                 ai_hp -= result['effective_damage']
@@ -226,7 +258,7 @@ def test_adaptation():
                 print("🛞 MAHORAGA WHEEL SPIN DETECTED! AI adapted to this attack.")
                 
             if user_hp <= 0:
-                print("💀 USER DIED! AI Wins!")
+                print("\033[1;31m💀 USER DIED! AI Wins!\033[0m")
         except Exception as e:
             print(f"Failed to update server: {e}")
             

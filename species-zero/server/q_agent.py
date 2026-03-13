@@ -34,12 +34,18 @@ class QAILogic:
         q_values = self._get_q_values(state)[:] # Copy to avoid mutating Q-table
         
         # Aggression Scaling (The "Finish Him" Logic)
-        if "_Critical_" in str(state):
+        is_critical = "_Critical_" in str(state)
+        if is_critical:
             # Weights Action 3 (Melee) and Action 7 (Blitz) by 3.0x
             q_values[3] *= 3.0
             q_values[7] *= 3.0
             
-        # return action with highest Q-value
+            # Action 0 logic: Drop Idle chance to 0% (Fatal Decision)
+            q_values[0] = -999999.0 # Effectively removal
+            
+        # Action with highest Q-value
+        # If max value is -999999.0 somehow (shouldn't happen with actions 3/7 weighted), 
+        # it will still pick one of the hitters.
         return q_values.index(max(q_values))
         
     def update(self, state, action, reward, next_state):
