@@ -20,6 +20,7 @@ def test_adaptation():
     ai_hp = 100.0
     previous_phenomenon = None
     stunned = False
+    sprint_count = 0
     
     # Clear npz file to reset agent for testing
     q_table_path = os.path.join(os.path.dirname(__file__), "../server/q_table.npz")
@@ -84,12 +85,13 @@ def test_adaptation():
         # Clear stun condition after movement attempt
         stunned = False
             
-        # Generate Dynamic Situational State: DistBucket_UserHPBucket_IncomingType_TurnPressure
+        # Generate Dynamic Situational State: DistBucket_UserHPBucket_IncomingType_TurnPressure_LungeRange
         dist_bucket = "Close" if current_distance <= 2.0 else "Mid" if current_distance <= 6.0 else "Far"
         user_hp_bucket = "Healthy" if user_hp > 70 else "Wounded" if user_hp > 30 else "Critical"
         incoming_type = "Melee" if phenomenon == "physical_punch" else "None" if phenomenon == "none" else "Ranged"
         turn_pressure = "Critical" if turn > 25 else "Medium" if turn > 12 else "Low"
-        current_state = f"{dist_bucket}_{user_hp_bucket}_{incoming_type}_{turn_pressure}"
+        lunge_range = "Lunge_Ready" if 1.5 < current_distance <= 3.5 else "No_Lunge"
+        current_state = f"{dist_bucket}_{user_hp_bucket}_{incoming_type}_{turn_pressure}_{lunge_range}"
 
         # 1. Ask for an action
         act_payload = {
@@ -99,7 +101,8 @@ def test_adaptation():
             "user_action": user_action,
             "incoming_type": incoming_type,
             "turn_pressure": turn_pressure,
-            "user_hp_bucket": user_hp_bucket
+            "user_hp_bucket": user_hp_bucket,
+            "lunge_range": lunge_range
         }
         
         print(f"\n[Player uses {phenomenon}]")
@@ -115,9 +118,21 @@ def test_adaptation():
             
         # Determine actual damage based on AI action
         damage_to_player = 0.0
+        
+        exhausted = sprint_count >= 2
+        movement_mult = 0.5 if exhausted else 1.0
+        
+        if action in [7, 8]:
+            sprint_count += 1
+        else:
+            sprint_count = 0
+            
         if action == 1: # Advance
-            current_distance = max(0.0, current_distance - 1.5)
-            print(f"AI Advanced forward! Distance is now {current_distance:.1f}")
+            dist_change = 1.5 * movement_mult
+            current_distance = max(0.0, current_distance - dist_change)
+            print(f"AI Advanced forward by {dist_change:.2f}! Distance is now {current_distance:.1f}")
+            if exhausted:
+                print("AI is Exhausted! Movement halved.")
         elif action == 2: # Dodge
             print("AI Dodged the attack! (No damage taken)")
             damage = 0.0
@@ -135,6 +150,31 @@ def test_adaptation():
             print("AI focuses on actively adapting to the CURRENT attack!")
         elif action == 6: # Adapt Previous
             print("AI focuses on actively adapting to the PREVIOUS attack!")
+        elif action == 7: # Blitz Assault
+            dist_change = 2.0 * movement_mult
+            current_distance = max(0.0, current_distance - dist_change)
+            print(f"\033[1;31m[!!!] PREDATOR IS BLITZING!\033[0m")
+            print(f"[AI] >>>>> [USER] (Closed distance by {dist_change:.2f})")
+            if exhausted:
+                print("AI is Exhausted! Movement halved.")
+
+            if current_distance <= 1.5:
+                damage_to_player = 25.0
+                stunned = True # Apply Stun
+                print("AI lands a devastating BLITZ Strike! User is STUNNED!")
+            else:
+                print(f"AI whiffs a BLITZ strike at {current_distance:.1f} distance!")
+        elif action == 8: # Evasive Skirmish
+            if current_distance > 3.0:
+                print("AI performs an Evasive Skirmish!")
+                damage_to_player = 10.0
+                if random.random() < 0.8:
+                    print("AI Dodged the attack successfully! (No damage taken)")
+                    damage = 0.0
+                else:
+                    print("AI failed to dodge during the Skirmish!")
+            else:
+                print("AI attempted an Evasive Skirmish but was too close!")
             
         # 2. Simulate taking damage and updating Q-table
         update_payload = {
@@ -148,6 +188,7 @@ def test_adaptation():
             "incoming_type": incoming_type,
             "turn_pressure": turn_pressure,
             "user_hp_bucket": user_hp_bucket,
+            "lunge_range": lunge_range,
             "damage_taken": damage,
             "damage_to_player": damage_to_player,
             "is_player_dead": (user_hp - damage_to_player <= 0),

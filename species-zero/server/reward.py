@@ -13,6 +13,8 @@ def calculate_reward(damage_to_player, effective_damage_taken, turn, action, ai_
     elif action == 4 and damage_to_player > 0: # Successful Ranged
         reward += 0.1
         reward += 0.05 # Efficiency Bonus
+    elif action == 7 and damage_to_player > 0: # Successful Blitz Assault
+        reward += 0.4
     elif action in [5, 6]: # Active Adaptation choice
         reward += 0.1
 
@@ -36,7 +38,10 @@ def calculate_reward(damage_to_player, effective_damage_taken, turn, action, ai_
         reward -= (effective_damage_taken / 10.0) * 0.8
         
     # The Executioner Time Penalty (Compounding Decay)
-    reward -= (1.15 ** turn) / 100.0
+    penalty = (1.15 ** turn) / 100.0
+    if action == 7:
+        penalty *= 2.0  # 2.0x Stamina cost for Blitzing
+    reward -= penalty
         
     # Desperation logic if near death
     if ai_hp <= 15 and action == 2:

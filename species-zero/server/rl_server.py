@@ -4,8 +4,8 @@ from validate_telemetry import validate_act_state, validate_update_state
 from reward import calculate_reward
 
 app = Flask(__name__)
-# Actions: 0: Idle, 1: Advance, 2: Dodge, 3: Melee, 4: Ranged, 5: Adapt Current, 6: Adapt Previous
-agent = QAILogic(action_size=7, model_path="q_table.npz")
+# Actions: 0: Idle, 1: Advance, 2: Dodge, 3: Melee, 4: Ranged, 5: Adapt Current, 6: Adapt Previous, 7: Blitz Assault, 8: Evasive Skirmish
+agent = QAILogic(action_size=9, model_path="q_table.npz")
 
 @app.route("/act", methods=["POST"])
 def act():
