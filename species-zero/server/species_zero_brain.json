@@ -1,0 +1,114 @@
+{
+    "q_table": {
+        "Far_Healthy_Melee_Low_No_Lunge": [
+            -1.0,
+            0.23815386978124997,
+            0.1,
+            0.5,
+            0.1,
+            0.1,
+            0.1,
+            0.4361019875,
+            0.2
+        ],
+        "Far_Grounded_Stationary": [
+            -1.0,
+            0.3,
+            0.1,
+            0.5,
+            0.1,
+            0.1,
+            0.1,
+            0.6,
+            0.2
+        ],
+        "Mid_Healthy_Melee_Low_No_Lunge": [
+            -1.0,
+            0.3,
+            0.1,
+            0.5,
+            0.1,
+            0.1,
+            0.1,
+            0.694,
+            0.2
+        ],
+        "Close_Healthy_Melee_Low_No_Lunge": [
+            -1.0,
+            0.3,
+            0.1,
+            0.5,
+            0.1,
+            0.1,
+            0.1,
+            0.694,
+            0.13533998011953124
+        ],
+        "Far_Healthy_None_Low_No_Lunge": [
+            -1.0,
+            0.3526775,
+            0.1,
+            0.5,
+            0.1,
+            0.1,
+            0.1,
+            0.6,
+            0.2
+        ],
+        "Front_Grounded_Stationary": [
+            -1.0,
+            0.3,
+            0.1,
+            0.5,
+            0.1,
+            0.1,
+            0.1,
+            0.6,
+            0.2
+        ],
+        "Mid_Healthy_None_Low_No_Lunge": [
+            -1.0,
+            0.3,
+            0.1,
+            0.5,
+            0.1,
+            0.1,
+            0.1,
+            0.694,
+            0.2
+        ],
+        "Close_Wounded_None_Low_No_Lunge": [
+            -1.0,
+            0.3,
+            0.1,
+            0.5,
+            0.1,
+            0.1,
+            0.1,
+            0.694,
+            0.2
+        ],
+        "Close_Critical_Melee_Low_No_Lunge": [
+            -1.0,
+            0.3,
+            0.1,
+            0.5,
+            0.1,
+            0.1,
+            0.1,
+            0.6,
+            0.23368693923437503
+        ]
+    },
+    "adapted_phenomena": [
+        "ambush",
+        "attack"
+    ],
+    "adaptation_registry": {
+        "ambush": 5.0,
+        "attack": 5.0,
+        "none": 1.0
+    },
+    "consecutive_wins": 1,
+    "global_combat_timer": 13
+}

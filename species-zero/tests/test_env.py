@@ -32,7 +32,7 @@ def test_adaptation():
     
     turn = 1
     while user_hp > 0 and ai_hp > 0:
-        penalty = (1.15 ** turn) / 100.0
+        penalty = min((1.15 ** turn) / 100.0, 0.5)
         print(f"\n--- Turn {turn} (Pressure Level: {penalty:.3f}) ---")
         
         # UI Overhaul: Flash AI HP in Red if in Phase 2
@@ -56,9 +56,11 @@ def test_adaptation():
                 print(f"[*] Identity Suppression cleared for {phenom.upper()}.")
 
         print("\nChoose an action (or type 'quit' to exit):")
-        print("1. fire_spell (Ranged)")
-        print("2. ice_spell (Ranged)")
-        print("3. physical_punch (Melee)")
+        print("1. attack (Standard Pressure)")
+        print("2. block (Defensive Posture)")
+        print("3. ambush (High-Damage Lunge)")
+        print("4. counterattack (Reactive Strike)")
+        print("5. dodge (Evasive Maneuver)")
         print("Movement: [F]orward, [B]ackward, [S]tay")
         
         try:
@@ -92,18 +94,40 @@ def test_adaptation():
             user_action = "Idle"
             consecutive_retreats = 0
         elif user_input == '1':
-            phenomenon = "fire_spell"
-            damage = 10.0
+            phenomenon = "attack"
+            if current_distance <= 3.0:
+                damage = 15.0
+            else:
+                damage = 0.0
+                print(f"Your attack missed! Too far ({current_distance:.1f} units). Get closer!")
         elif user_input == '2':
-            phenomenon = "ice_spell"
-            damage = 10.0
+            phenomenon = "block"
+            damage = 0.0
         elif user_input == '3':
-            phenomenon = "physical_punch"
-            damage = 20.0
+            phenomenon = "ambush"
+            if current_distance <= 6.0:
+                damage = 25.0
+            else:
+                damage = 0.0
+                print(f"Your ambush missed! Too far ({current_distance:.1f} units). Need to be within 6.0!")
+        elif user_input == '4':
+            phenomenon = "counterattack"
+            if current_distance <= 3.0:
+                damage = 15.0
+            else:
+                damage = 0.0
+                print(f"Your counterattack missed! Too far ({current_distance:.1f} units). Get closer!")
+        elif user_input == '5':
+            phenomenon = "dodge"
+            damage = 0.0
         else:
             # gracefully handle custom strings
             phenomenon = user_input.replace(' ', '_').lower()
-            damage = 10.0
+            if current_distance <= 4.0:
+                damage = 10.0
+            else:
+                damage = 0.0
+                print(f"Your attack missed! Too far ({current_distance:.1f} units).")
             
         # Identity Suppression Check
         if phenomenon in suppressed_phenomena:
@@ -116,7 +140,7 @@ def test_adaptation():
         # Generate Dynamic Situational State: DistBucket_UserHPBucket_IncomingType_TurnPressure_LungeRange
         dist_bucket = "Close" if current_distance <= 2.0 else "Mid" if current_distance <= 6.0 else "Far"
         user_hp_bucket = "Healthy" if user_hp > 70 else "Wounded" if user_hp > 30 else "Critical"
-        incoming_type = "Melee" if phenomenon == "physical_punch" else "None" if phenomenon == "none" else "Ranged"
+        incoming_type = "Melee" if phenomenon in ["attack", "ambush", "counterattack"] else "None" if phenomenon in ["none", "block", "dodge"] else "Ranged"
         turn_pressure = "Critical" if turn > 25 else "Medium" if turn > 12 else "Low"
         lunge_range = "Lunge_Ready" if 1.5 < current_distance <= 3.5 else "No_Lunge"
         current_state = f"{dist_bucket}_{user_hp_bucket}_{incoming_type}_{turn_pressure}_{lunge_range}"
@@ -130,7 +154,8 @@ def test_adaptation():
             "incoming_type": incoming_type,
             "turn_pressure": turn_pressure,
             "user_hp_bucket": user_hp_bucket,
-            "lunge_range": lunge_range
+            "lunge_range": lunge_range,
+            "ai_hp": ai_hp
         }
         
         print(f"\n[Player uses {phenomenon}]")

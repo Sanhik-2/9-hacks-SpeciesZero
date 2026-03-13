@@ -1,11 +1,13 @@
 from flask import Flask, request, jsonify
+import os
 from q_agent import QAILogic
 from validate_telemetry import validate_act_state, validate_update_state
 from reward import calculate_reward
 
 app = Flask(__name__)
 # Actions: 0: Idle, 1: Advance, 2: Dodge, 3: Melee, 4: Ranged, 5: Adapt Current, 6: Adapt Previous, 7: Blitz Assault, 8: Evasive Skirmish
-agent = QAILogic(action_size=9, model_path="q_table.npz")
+mode = os.environ.get("AGENT_MODE", "training")
+agent = QAILogic(action_size=9, model_path="species_zero_brain.json", mode=mode)
 
 @app.route("/act", methods=["POST"])
 def act():
@@ -18,8 +20,11 @@ def act():
     # 3D Discretized State Conversion
     # Relative_Position: (Front, Back, Left, Right)
     x, y, z = rel_pos
+    distance = float(data.get("distance", 10.0))
     pos_desc = "Front"
-    if z < -1: pos_desc = "Back"
+    if distance > 6.0:
+        pos_desc = "Far"
+    elif z < -1: pos_desc = "Back"
     elif x > 1: pos_desc = "Right"
     elif x < -1: pos_desc = "Left"
     
@@ -29,8 +34,18 @@ def act():
     user_hp = float(data.get("user_hp", 100.0))
     if user_hp < 30:
         state_str += "_Critical_"
+        
+    # Check for lunge ready
+    lunge_range = data.get("lunge_range", "No_Lunge")
+    if lunge_range == "Lunge_Ready":
+        state_str += "_Lunge_Ready_"
 
-    action = agent.get_action(state_str)
+    # Assuming current phenomenon is unknown for act (since player might not have attacked yet), but we can pass False or current checking 
+    phenomenon_id = data.get("phenomenon_id", "none")
+    is_adapted = agent.is_adapted(phenomenon_id)
+    ai_hp = float(data.get("ai_hp", 100.0))
+
+    action = agent.get_action(state_str, distance, is_adapted, ai_hp)
     
     return jsonify({
         "action": int(action),
@@ -60,8 +75,10 @@ def update():
     
     if rebirth_trigger:
         # Reset turn pressure or any relevant counters for Phase 2
-        # For now, we just acknowledge it.
-        pass
+        agent.is_phase_2 = True
+    
+    agent.update_idles(action, distance)
+    dopamine_level = agent.update_dopamine(damage_to_player, user_hp)
     
     # Process incoming damage reductions
     effective_damage = agent.process_damage(phenomenon_id, damage_taken)
@@ -79,26 +96,31 @@ def update():
     wheel_spin = wheel_spin or spin_from_observation
     
     # Lethality & Reciprocity Tracking
-    if is_player_dead:
+    if is_player_dead or user_hp <= 0:
         agent.consecutive_wins += 1
+        agent.save()  # Persistence: Save when player dies
     if (ai_hp - effective_damage) <= 0:
         agent.consecutive_wins = 0
         
     infused_multiplier = 1.2 if agent.consecutive_wins >= 3 else 1.0
     
-    # Mirror Engine Mockery
+    is_adapted_to_current = agent.is_adapted(phenomenon_id)
+    
+    # Mirror Engine Mockery (only if adapted to current)
     mockery_target = agent.get_mirror_target()
-    mockery_flag = (action == 6 and mockery_target is not None)
+    mockery_flag = (action == 6 and mockery_target is not None and is_adapted_to_current)
+    
+    if mockery_flag:
+        agent.save()  # Mark major learning milestone
     
     # Adaptive Counter flag check (for client visuals/logs if needed)
-    is_infused_counter = (action == 3 and agent.is_adapted(phenomenon_id))
+    is_infused_counter = (action == 3 and is_adapted_to_current)
     
     # Calculate aggressive hunter reward
-    is_adapted_to_current = agent.is_adapted(phenomenon_id)
-    reward = calculate_reward(damage_to_player, effective_damage, turn, action, ai_hp, user_hp, distance, is_adapted_to_current, is_player_dead)
+    reward = calculate_reward(damage_to_player, effective_damage, turn, action, ai_hp, user_hp, distance, is_adapted_to_current, is_player_dead, agent.consecutive_idles_close, phenomenon_id, dopamine_level, agent.is_phase_2)
     
     # Q-Learning update
-    agent.update(state, action, reward, next_state)
+    agent.update(state, action, reward, next_state, turn)
     
     return jsonify({
         "status": "success",
@@ -110,7 +132,8 @@ def update():
         "mockery_flag": mockery_flag,
         "mockery_target": mockery_target,
         "identity_suppressed": mockery_flag, # Action 6 triggers suppression
-        "adapted": list(agent.adapted_phenomena)
+        "adapted": list(agent.adapted_phenomena),
+        "dopamine_level": float(dopamine_level)
     })
 
 if __name__ == "__main__":

@@ -1,0 +1,126 @@
+{
+    "q_table": {
+        "Far_Grounded_Stationary": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "Far_Healthy_Melee_Low_No_Lunge": [
+            0.0,
+            -0.13274929375,
+            0.0,
+            0.0,
+            -0.046322499999999996,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "Front_Grounded_Stationary": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "Mid_Healthy_Melee_Low_No_Lunge": [
+            -0.34390000000000004,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "Mid_Healthy_None_Low_No_Lunge": [
+            -0.18732883594466443,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "Mid_Healthy_None_Medium_No_Lunge": [
+            -0.4817048870431525,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0018629383708376789,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "Mid_Healthy_Ranged_Medium_No_Lunge": [
+            0.0,
+            0.0,
+            0.0006423791264633327,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "Mid_Healthy_None_Critical_No_Lunge": [
+            -0.4613885591823285,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "Mid_Healthy_Ranged_Critical_No_Lunge": [
+            -0.1,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "Mid_Healthy_Melee_Critical_No_Lunge": [
+            -0.5695327900000001,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ]
+    },
+    "adapted_phenomena": [
+        "attack"
+    ],
+    "adaptation_registry": {
+        "attack": 5.0,
+        "block": 1,
+        "22": 0.5,
+        "21": 1.0,
+        "ambush": 2.0
+    },
+    "consecutive_wins": 0,
+    "global_combat_timer": 40
+}
